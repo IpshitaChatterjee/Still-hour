@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stillhour — Meditation Timer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink: #EDEAE2;
+    --ink-dim: #9CA6AC;
+    --bg-0: #12161C;
+    --bg-1: #1A2028;
+    --bg-2: #212933;
+    --sage: #8FA998;
+    --sage-dim: rgba(143,169,152,0.16);
+    --gold: #C9A66B;
+    --ring: rgba(143,169,152,0.35);
+    --danger: #C97B63;
+    --radius: 18px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin:0;
+    height:100%;
+  }
+
+  body{
+    background: radial-gradient(120% 120% at 50% 0%, var(--bg-1) 0%, var(--bg-0) 60%);
+    color: var(--ink);
+    font-family: 'Work Sans', sans-serif;
+    min-height: 100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 32px 20px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app{
+    width: 100%;
+    max-width: 460px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap: 30px;
+  }
+
+  .eyebrow{
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    text-align:center;
+  }
+
+  .eyebrow strong{
+    color: var(--sage);
+    font-weight: 600;
+  }
+
+  /* ---------- Breathing ring / timer ---------- */
+
+  .ring-wrap{
+    position: relative;
+    width: 300px;
+    height: 300px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .breath{
+    position:absolute;
+    inset:0;
+    border-radius:50%;
+    border: 1px solid var(--ring);
+    animation: breathe 8s ease-in-out infinite;
+    opacity: 0.9;
+    transition: opacity 1.2s ease;
+  }
+
+  .breath.b2{
+    inset: 22px;
+    animation-delay: -0.4s;
+    opacity: 0.55;
+  }
+
+  .breath.b3{
+    inset: 44px;
+    background: var(--sage-dim);
+    border-color: transparent;
+    animation-delay: -0.8s;
+    opacity: 0.5;
+  }
+
+  @keyframes breathe{
+    0%, 100%{ transform: scale(0.86); }
+    50%{ transform: scale(1); }
+  }
+
+  .app.paused .breath{ animation-play-state: paused; }
+  .app.fading-out .breath{ opacity: 0 !important; transition: opacity 6s linear; }
+
+  .core{
+    position:relative;
+    z-index:2;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+  }
+
+  .time{
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 68px;
+    font-optical-sizing: auto;
+    letter-spacing: 0.01em;
+    line-height:1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .phase{
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    height: 16px;
+  }
+
+  /* ---------- Setup panel ---------- */
+
+  .panel{
+    width:100%;
+    background: var(--bg-2);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: var(--radius);
+    padding: 22px;
+    display:flex;
+    flex-direction:column;
+    gap: 18px;
+  }
+
+  .field-label{
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-bottom: 10px;
+    display:block;
+  }
+
+  .chips{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+
+  .chip{
+    flex: 1 1 auto;
+    text-align:center;
+    padding: 9px 0;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.09);
+    background: transparent;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 13px;
+    cursor:pointer;
+    transition: all 0.15s ease;
+    min-width: 52px;
+  }
+
+  .chip:hover{ border-color: var(--sage); }
+
+  .chip.active{
+    background: var(--sage-dim);
+    border-color: var(--sage);
+    color: var(--sage);
+  }
+
+  .custom-minutes{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .upload{
+    border: 1px dashed rgba(255,255,255,0.14);
+    border-radius: 14px;
+    padding: 16px;
+    text-align:center;
+    cursor:pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    position: relative;
+  }
+
+  .upload:hover, .upload.drag{
+    border-color: var(--sage);
+    background: rgba(143,169,152,0.05);
+  }
+
+  .upload input{
+    position:absolute;
+    inset:0;
+    opacity:0;
+    cursor:pointer;
+  }
+
+  .upload-title{
+    font-size: 13.5px;
+    color: var(--ink);
+  }
+
+  .upload-sub{
+    font-size: 12px;
+    color: var(--ink-dim);
+    margin-top: 4px;
+  }
+
+  .track-chosen{
+    font-size: 12.5px;
+    color: var(--sage);
+    margin-top: 6px;
+    word-break: break-word;
+  }
+
+  /* ---------- Controls ---------- */
+
+  .controls{
+    display:flex;
+    gap: 12px;
+    width:100%;
+  }
+
+  .btn{
+    flex:1;
+    padding: 14px 0;
+    border-radius: 14px;
+    border: none;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: transform 0.1s ease, opacity 0.15s ease;
+  }
+
+  .btn:active{ transform: scale(0.98); }
+
+  .btn-primary{
+    background: var(--sage);
+    color: #10140F;
+  }
+
+  .btn-primary:disabled{
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary{
+    background: transparent;
+    color: var(--ink-dim);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .btn-secondary:hover{ color: var(--ink); border-color: rgba(255,255,255,0.2); }
+
+  .hint{
+    font-size: 12px;
+    color: var(--ink-dim);
+    text-align:center;
+    line-height:1.5;
+    min-height: 18px;
+  }
+
+  .hidden{ display:none !important; }
+
+  @media (prefers-reduced-motion: reduce){
+    .breath{ animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <div class="ring-wrap">
+    <div class="breath b1"></div>
+    <div class="breath b2"></div>
+    <div class="breath b3"></div>
+    <div class="core">
+      <div class="time" id="timeDisplay">10:00</div>
+      <div class="phase" id="phaseLabel"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="setupPanel">
+    <div>
+      <span class="field-label">Duration</span>
+      <div class="chips" id="chips">
+        <button class="chip" data-min="5">5m</button>
+        <button class="chip active" data-min="10">10m</button>
+        <button class="chip" data-min="15">15m</button>
+        <button class="chip" data-min="20">20m</button>
+        <button class="chip" data-min="30">30m</button>
+      </div>
+    </div>
+
+    <div>
+      <span class="field-label">Sound</span>
+      <div class="upload" id="uploadZone">
+        <input type="file" id="fileInput" accept="audio/*,video/mp4,.mp4,.m4a">
+        <div class="upload-title" id="uploadTitle">Upload a track to play while you sit</div>
+        <div class="upload-sub">MP4, M4A or any audio file — it loops for the whole session</div>
+        <div class="track-chosen hidden" id="trackChosen"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-primary" id="startBtn">Begin sitting</button>
+    <button class="btn btn-secondary hidden" id="resetBtn">Reset</button>
+  </div>
+
+  <div class="hint hidden" id="hint"></div>
+
+</div>
+
+<audio id="audioEl" loop preload="auto"></audio>
+
+<script>
+(function(){
+  const app = document.getElementById('app');
+  const chips = document.querySelectorAll('.chip');
+  const fileInput = document.getElementById('fileInput');
+  const uploadZone = document.getElementById('uploadZone');
+  const uploadTitle = document.getElementById('uploadTitle');
+  const trackChosen = document.getElementById('trackChosen');
+  const startBtn = document.getElementById('startBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const timeDisplay = document.getElementById('timeDisplay');
+  const phaseLabel = document.getElementById('phaseLabel');
+  const hint = document.getElementById('hint');
+  const audioEl = document.getElementById('audioEl');
+  const setupPanel = document.getElementById('setupPanel');
+
+  let selectedMinutes = 10;
+  const fadeSeconds = 10;
+  let totalSeconds = selectedMinutes * 60;
+  let remaining = totalSeconds;
+  let tickHandle = null;
+  let running = false;
+  let paused = false;
+  let hasTrack = false;
+
+  // ---------- Duration selection ----------
+
+  chips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      chips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      selectedMinutes = parseInt(chip.dataset.min, 10);
+      updateTotals();
+    });
+  });
+
+  function updateTotals(){
+    totalSeconds = Math.max(1, Math.round(selectedMinutes * 60));
+    remaining = totalSeconds;
+    renderTime();
+  }
+
+  // ---------- File upload ----------
+
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    loadTrack(file);
+  });
+
+  ['dragover','dragenter'].forEach(evt => {
+    uploadZone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      uploadZone.classList.add('drag');
+    });
+  });
+  ['dragleave','drop'].forEach(evt => {
+    uploadZone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('drag');
+    });
+  });
+  uploadZone.addEventListener('drop', (e) => {
+    const file = e.dataTransfer.files[0];
+    if (file) loadTrack(file);
+  });
+
+  function loadTrack(file){
+    const url = URL.createObjectURL(file);
+    audioEl.src = url;
+    audioEl.load();
+    hasTrack = true;
+    uploadTitle.textContent = 'Track ready';
+    trackChosen.textContent = file.name;
+    trackChosen.classList.remove('hidden');
+    hint.textContent = 'Ready when you are.';
+  }
+
+  audioEl.addEventListener('error', () => {
+    hasTrack = false;
+    const codes = {1:'load aborted',2:'network error',3:'decode error — unsupported codec',4:'format not supported'};
+    const code = audioEl.error ? audioEl.error.code : null;
+    hint.textContent = "Couldn't load that file: " + (codes[code] || 'unknown error') + '. Try converting it to an MP3 or standard M4A.';
+  });
+
+  // ---------- Session flow ----------
+
+  startBtn.addEventListener('click', () => {
+    if (!running){
+      beginSession();
+    } else if (paused){
+      resumeSession();
+    } else {
+      pauseSession();
+    }
+  });
+
+  resetBtn.addEventListener('click', resetSession);
+
+  function beginSession(){
+    running = true;
+    paused = false;
+    remaining = totalSeconds;
+    setupPanel.classList.add('hidden');
+    resetBtn.classList.remove('hidden');
+    startBtn.textContent = 'Pause';
+    hint.textContent = hasTrack ? 'Playing softly. Let your attention settle.' : 'Sitting in silence.';
+
+    if (hasTrack){
+      audioEl.pause();
+      audioEl.volume = 1;
+      audioEl.currentTime = 0;
+      const playPromise = audioEl.play();
+      if (playPromise && playPromise.catch){
+        playPromise.catch((err) => {
+          hint.textContent = "Couldn't start the track — tap Pause then Resume to retry.";
+          console.error('Playback failed:', err);
+        });
+      }
+    }
+
+    renderTime();
+    tick();
+  }
+
+  function pauseSession(){
+    paused = true;
+    app.classList.add('paused');
+    startBtn.textContent = 'Resume';
+    hint.textContent = 'Paused. Take your time.';
+    clearTimeout(tickHandle);
+    if (hasTrack) audioEl.pause();
+  }
+
+  function resumeSession(){
+    paused = false;
+    app.classList.remove('paused');
+    startBtn.textContent = 'Pause';
+    hint.textContent = hasTrack ? 'Playing softly. Let your attention settle.' : 'Sitting in silence.';
+    if (hasTrack){
+      const playPromise = audioEl.play();
+      if (playPromise && playPromise.catch){
+        playPromise.catch((err) => console.error('Playback failed:', err));
+      }
+    }
+    tick();
+  }
+
+  function tick(){
+    if (!running || paused) return;
+
+    renderTime();
+
+    if (remaining <= fadeSeconds && remaining > 0 && hasTrack){
+      triggerFadeOnce();
+    }
+
+    if (remaining <= 0){
+      finishSession();
+      return;
+    }
+
+    tickHandle = setTimeout(() => {
+      remaining -= 1;
+      tick();
+    }, 1000);
+  }
+
+  let fadeTriggered = false;
+  function triggerFadeOnce(){
+    if (fadeTriggered) return;
+    fadeTriggered = true;
+    app.classList.add('fading-out');
+    phaseLabel.textContent = 'settling';
+
+    const startVolume = audioEl.volume;
+    const durationMs = Math.max(Math.min(fadeSeconds, remaining), 1) * 1000;
+    const startTime = performance.now();
+
+    function step(now){
+      if (!running) return;
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / durationMs, 1);
+      audioEl.volume = Math.max(startVolume * (1 - t), 0);
+      if (t < 1){
+        requestAnimationFrame(step);
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+  function finishSession(){
+    running = false;
+    paused = false;
+    clearTimeout(tickHandle);
+    if (hasTrack){
+      audioEl.pause();
+      audioEl.currentTime = 0;
+    }
+    timeDisplay.textContent = '00:00';
+    phaseLabel.textContent = '';
+    hint.textContent = 'Session complete. Take a breath before you go.';
+    startBtn.textContent = 'Sit again';
+    startBtn.disabled = false;
+    app.classList.remove('fading-out');
+  }
+
+  function resetSession(){
+    running = false;
+    paused = false;
+    fadeTriggered = false;
+    clearTimeout(tickHandle);
+    if (hasTrack){
+      audioEl.pause();
+      audioEl.currentTime = 0;
+      audioEl.volume = 1;
+    }
+    app.classList.remove('paused','fading-out');
+    setupPanel.classList.remove('hidden');
+    resetBtn.classList.add('hidden');
+    startBtn.textContent = 'Begin sitting';
+    hint.textContent = hasTrack ? 'Ready when you are.' : 'Upload a track, or start in silence.';
+    updateTotals();
+  }
+
+  function renderTime(){
+    const m = Math.floor(Math.max(remaining,0) / 60);
+    const s = Math.max(remaining,0) % 60;
+    timeDisplay.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  }
+
+  // On finishSession we reused startBtn as "Sit again" — wire that intent back to beginSession.
+  startBtn.addEventListener('click', () => {
+    if (!running && startBtn.textContent === 'Sit again'){
+      resetSession();
+      setTimeout(beginSession, 0);
+    }
+  }, true);
+
+  updateTotals();
+})();
+</script>
+
+</body>
+</html>
